@@ -36,7 +36,6 @@ namespace Seb.Fluid.Rendering
 		public FluidSim sim;
 		public Camera shadowCam;
 		public Light sun;
-		public FoamRenderTest foamTest;
 
 		DisplayMode displayModeOld;
 		Mesh quadMesh;
@@ -53,7 +52,6 @@ namespace Seb.Fluid.Rendering
 		RenderTexture depthRt;
 		RenderTexture normalRt;
 		RenderTexture shadowRt;
-		RenderTexture foamRt;
 		RenderTexture thicknessRt;
 
 		// Command buffers
@@ -88,12 +86,6 @@ namespace Seb.Fluid.Rendering
 			// ---- Render commands ----
 			cmd.Clear();
 
-			// -- Render foam/spray/bubbles: rgb = (foam, foamDepth_unity, foamDepth_linear) --
-			cmd.SetRenderTarget(foamRt);
-			float depthClearVal = SystemInfo.usesReversedZBuffer ? 0 : 1;
-			cmd.ClearRenderTarget(true, true, new Color(0, depthClearVal, 0, 0));
-			foamTest.RenderWithCmdBuffer(cmd);
-
 			// -- Render particles to Depth texture --
 			cmd.SetRenderTarget(depthRt);
 			cmd.ClearRenderTarget(true, true, Color.white * 10000000, 1);
@@ -101,7 +93,7 @@ namespace Seb.Fluid.Rendering
 
 			// -- Render particles to thickness texture --
 			cmd.SetRenderTarget(thicknessRt);
-			cmd.Blit(foamRt, thicknessRt, depthDownsampleCopyMat); // copy depth from foamRt into the thicknessRt depth buffer
+			cmd.Blit(null, thicknessRt, depthDownsampleCopyMat); // copy depth from foamRt into the thicknessRt depth buffer
 			cmd.DrawMeshInstancedIndirect(quadMesh, 0, matThickness, 0, argsBuffer);
 
 			// ---- Pack thickness and depth into compRt (depth, thick, thick, depth) ----
@@ -115,7 +107,7 @@ namespace Seb.Fluid.Rendering
 			cmd.Blit(compRt, normalRt, matNormal);
 
 			// -- Composite final image and draw to screen --
-			cmd.Blit(foamRt, BuiltinRenderTextureType.CameraTarget, matComposite);
+			cmd.Blit(null, BuiltinRenderTextureType.CameraTarget, matComposite);
 		}
 
 		void Init()
@@ -167,7 +159,6 @@ namespace Seb.Fluid.Rendering
 				ComputeHelper.CreateRenderTexture(ref normalRt, width, height, FilterMode.Bilinear, fmtRGBA, depthMode: DepthMode.None);
 				ComputeHelper.CreateRenderTexture(ref compRt, width, height, FilterMode.Bilinear, fmtRGBA, depthMode: DepthMode.None);
 				ComputeHelper.CreateRenderTexture(ref shadowRt, shadowTexWidth, shadowTexHeight, FilterMode.Bilinear, fmtR, depthMode: DepthMode.None);
-				ComputeHelper.CreateRenderTexture(ref foamRt, width, height, FilterMode.Bilinear, fmtRGBA, depthMode: DepthMode.Depth16);
 			}
 		}
 
@@ -275,8 +266,6 @@ namespace Seb.Fluid.Rendering
 			matComposite.SetVector("dirToSun", -sun.transform.forward);
 			matComposite.SetFloat("depthDisplayScale", depthDisplayScale);
 			matComposite.SetFloat("thicknessDisplayScale", thicknessDisplayScale);
-			matComposite.SetBuffer("foamCountBuffer", sim.foamCountBuffer);
-			matComposite.SetInt("foamMax", sim.foamBuffer.count);
 			
 			// Environment
 			Vector3 floorSize = new Vector3(30, 0.05f, 30);
@@ -342,7 +331,7 @@ namespace Seb.Fluid.Rendering
 		void OnDestroy()
 		{
 			ComputeHelper.Release(argsBuffer);
-			ComputeHelper.Release(depthRt, thicknessRt, normalRt, compRt, shadowRt, foamRt);
+			ComputeHelper.Release(depthRt, thicknessRt, normalRt, compRt, shadowRt);
 		}
 	}
 }
