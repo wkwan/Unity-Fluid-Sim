@@ -29,7 +29,7 @@ namespace Seb.Fluid.Rendering
 		[Header("References")] public Shader renderA;
 		public Shader depthDownsampleCopyShader;
 		public Shader depthShader;
-		public Shader normalShader;
+		// public Shader normalShader;
 		public Shader thicknessShader;
 		public Shader smoothThickPrepareShader;
 		public FluidSim sim;
@@ -38,7 +38,7 @@ namespace Seb.Fluid.Rendering
 		Mesh quadMesh;
 		Material matDepth;
 		Material matThickness;
-		Material matNormal;
+		// Material matNormal;
 		Material matComposite;
 		Material smoothPrepareMat;
 		Material depthDownsampleCopyMat;
@@ -47,7 +47,7 @@ namespace Seb.Fluid.Rendering
 		// Render textures
 		RenderTexture compRt;
 		RenderTexture depthRt;
-		RenderTexture normalRt;
+		// RenderTexture normalRt;
 		RenderTexture thicknessRt;
 
 		// Command buffers
@@ -91,7 +91,8 @@ namespace Seb.Fluid.Rendering
 			ApplyActiveSmoothingType(cmd, compRt, compRt, compRt.descriptor, new Vector3(1, 1, 0));
 
 			// -- Reconstruct normals from smooth depth --
-			cmd.Blit(compRt, normalRt, matNormal);
+			// cmd.Blit(compRt, normalRt, matNormal);
+			// cmd.Blit(comptRt, null, null);
 
 			// -- Composite final image and draw to screen --
 			cmd.Blit(null, BuiltinRenderTextureType.CameraTarget, matComposite);
@@ -109,7 +110,7 @@ namespace Seb.Fluid.Rendering
 			{
 				if (!depthDownsampleCopyMat) depthDownsampleCopyMat = new Material(depthDownsampleCopyShader);
 				if (!matDepth) matDepth = new Material(depthShader);
-				if (!matNormal) matNormal = new Material(normalShader);
+				// if (!matNormal) matNormal = new Material(normalShader);
 				if (!matThickness) matThickness = new Material(thicknessShader);
 				if (!smoothPrepareMat) smoothPrepareMat = new Material(smoothThickPrepareShader);
 				if (!matComposite) matComposite = new Material(renderA);
@@ -138,7 +139,7 @@ namespace Seb.Fluid.Rendering
 				GraphicsFormat fmtR = GraphicsFormat.R32_SFloat;
 				ComputeHelper.CreateRenderTexture(ref depthRt, width, height, FilterMode.Bilinear, fmtR, depthMode: DepthMode.Depth16);
 				ComputeHelper.CreateRenderTexture(ref thicknessRt, thicknessTexWidth, thicknessTexHeight, FilterMode.Bilinear, fmtR, depthMode: DepthMode.Depth16);
-				ComputeHelper.CreateRenderTexture(ref normalRt, width, height, FilterMode.Bilinear, fmtRGBA, depthMode: DepthMode.None);
+				// ComputeHelper.CreateRenderTexture(ref normalRt, width, height, FilterMode.Bilinear, fmtRGBA, depthMode: DepthMode.None);
 				ComputeHelper.CreateRenderTexture(ref compRt, width, height, FilterMode.Bilinear, fmtRGBA, depthMode: DepthMode.None);
 			}
 		}
@@ -212,12 +213,12 @@ namespace Seb.Fluid.Rendering
 			matDepth.SetFloat("scale", depthParticleSize);
 
 			// ---- Normals ----
-			matNormal.SetInt("useSmoothedDepth", Input.GetKey(KeyCode.LeftControl) ? 0 : 1);
+			// matNormal.SetInt("useSmoothedDepth", Input.GetKey(KeyCode.LeftControl) ? 0 : 1);
 
 			// ---- Composite mat settings ----
 			matComposite.SetInt("debugDisplayMode", (int)displayMode);
 			matComposite.SetTexture("Comp", compRt);
-			matComposite.SetTexture("Normals", normalRt);
+			// matComposite.SetTexture("Normals", normalRt);
 			
 			matComposite.SetVector("testParams", testParams);
 			matComposite.SetVector("extinctionCoefficients", extinctionCoefficients * extinctionMultiplier);
@@ -275,7 +276,7 @@ namespace Seb.Fluid.Rendering
 			Composite,
 			Depth,
 			SmoothDepth,
-			Normal,
+			// Normal,
 			Thickness,
 			SmoothThickness
 		}
@@ -291,7 +292,7 @@ namespace Seb.Fluid.Rendering
 		void OnDestroy()
 		{
 			ComputeHelper.Release(argsBuffer);
-			ComputeHelper.Release(depthRt, thicknessRt, normalRt, compRt);
+			ComputeHelper.Release(depthRt, thicknessRt, compRt);
 		}
 	}
 }
