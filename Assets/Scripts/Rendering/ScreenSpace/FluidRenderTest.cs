@@ -20,7 +20,6 @@ namespace Seb.Fluid.Rendering
 		public BilateralSmooth2D.BilateralFilterSettings bilateralSettings;
 		public GaussSmooth.GaussianBlurSettings gaussSmoothSettings;
 
-		[Header("Environment")] public GaussSmooth.GaussianBlurSettings shadowSmoothSettings;
 		public EnvironmentSettings environmentSettings;
 
 		[Header("Debug Settings")] public DisplayMode displayMode;
@@ -34,8 +33,6 @@ namespace Seb.Fluid.Rendering
 		public Shader thicknessShader;
 		public Shader smoothThickPrepareShader;
 		public FluidSim sim;
-		public Camera shadowCam;
-		public Light sun;
 
 		DisplayMode displayModeOld;
 		Mesh quadMesh;
@@ -51,12 +48,10 @@ namespace Seb.Fluid.Rendering
 		RenderTexture compRt;
 		RenderTexture depthRt;
 		RenderTexture normalRt;
-		RenderTexture shadowRt;
 		RenderTexture thicknessRt;
 
 		// Command buffers
 		CommandBuffer cmd;
-		CommandBuffer shadowCmd;
 
 		// Smoothing types
 		Bilateral1D bilateral1D = new();
@@ -67,7 +62,6 @@ namespace Seb.Fluid.Rendering
 		{
 			Init();
 			RenderCamSetup();
-			ShadowCamSetup();
 			BuildCommands();
 			UpdateSettings();
 
@@ -76,13 +70,6 @@ namespace Seb.Fluid.Rendering
 
 		void BuildCommands()
 		{
-			// ---- Shadow cmds ----
-			shadowCmd.Clear();
-			shadowCmd.SetRenderTarget(shadowRt);
-			shadowCmd.ClearRenderTarget(true, true, Color.black);
-			shadowCmd.DrawMeshInstancedIndirect(quadMesh, 0, matThickness, 0, argsBuffer);
-			gaussSmooth.Smooth(shadowCmd, shadowRt, shadowRt, shadowRt.descriptor, shadowSmoothSettings, Vector3.one);
-
 			// ---- Render commands ----
 			cmd.Clear();
 
@@ -147,18 +134,12 @@ namespace Seb.Fluid.Rendering
 					thicknessTexHeight = height;
 				}
 
-				// Shadow texture size
-				const int shadowTexSizeReduction = 4;
-				int shadowTexWidth = width / shadowTexSizeReduction;
-				int shadowTexHeight = height / shadowTexSizeReduction;
-
 				GraphicsFormat fmtRGBA = GraphicsFormat.R32G32B32A32_SFloat;
 				GraphicsFormat fmtR = GraphicsFormat.R32_SFloat;
 				ComputeHelper.CreateRenderTexture(ref depthRt, width, height, FilterMode.Bilinear, fmtR, depthMode: DepthMode.Depth16);
 				ComputeHelper.CreateRenderTexture(ref thicknessRt, thicknessTexWidth, thicknessTexHeight, FilterMode.Bilinear, fmtR, depthMode: DepthMode.Depth16);
 				ComputeHelper.CreateRenderTexture(ref normalRt, width, height, FilterMode.Bilinear, fmtRGBA, depthMode: DepthMode.None);
 				ComputeHelper.CreateRenderTexture(ref compRt, width, height, FilterMode.Bilinear, fmtRGBA, depthMode: DepthMode.None);
-				ComputeHelper.CreateRenderTexture(ref shadowRt, shadowTexWidth, shadowTexHeight, FilterMode.Bilinear, fmtR, depthMode: DepthMode.None);
 			}
 		}
 
@@ -216,24 +197,6 @@ namespace Seb.Fluid.Rendering
 			Camera.main.depthTextureMode = DepthTextureMode.Depth;
 		}
 
-		void ShadowCamSetup()
-		{
-			if (shadowCmd == null)
-			{
-				shadowCmd = new();
-				shadowCmd.name = "Fluid Shadow Render Commands";
-			}
-
-			shadowCam.RemoveAllCommandBuffers();
-			shadowCam.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, shadowCmd);
-
-			Vector3 dirToSun = -sun.transform.forward;
-			shadowCam.transform.position = dirToSun * 50;
-			shadowCam.transform.rotation = sun.transform.rotation;
-			shadowCam.orthographicSize = FrameBoundsOrtho(sim.Scale, shadowCam.worldToCameraMatrix) + 0.5f;
-		}
-
-
 		void UpdateSettings()
 		{
 			// ---- Smooth prepare ----
@@ -255,15 +218,12 @@ namespace Seb.Fluid.Rendering
 			matComposite.SetInt("debugDisplayMode", (int)displayMode);
 			matComposite.SetTexture("Comp", compRt);
 			matComposite.SetTexture("Normals", normalRt);
-			matComposite.SetTexture("ShadowMap", shadowRt);
 			
 			matComposite.SetVector("testParams", testParams);
 			matComposite.SetVector("extinctionCoefficients", extinctionCoefficients * extinctionMultiplier);
 			matComposite.SetVector("boundsSize", sim.Scale);
 			matComposite.SetFloat("refractionMultiplier", refractionMultiplier);
 
-			matComposite.SetMatrix("shadowVP", GL.GetGPUProjectionMatrix(shadowCam.projectionMatrix, false) * shadowCam.worldToCameraMatrix);
-			matComposite.SetVector("dirToSun", -sun.transform.forward);
 			matComposite.SetFloat("depthDisplayScale", depthDisplayScale);
 			matComposite.SetFloat("thicknessDisplayScale", thicknessDisplayScale);
 			
@@ -331,7 +291,7 @@ namespace Seb.Fluid.Rendering
 		void OnDestroy()
 		{
 			ComputeHelper.Release(argsBuffer);
-			ComputeHelper.Release(depthRt, thicknessRt, normalRt, compRt, shadowRt);
+			ComputeHelper.Release(depthRt, thicknessRt, normalRt, compRt);
 		}
 	}
 }
