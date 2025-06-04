@@ -25,19 +25,6 @@ namespace Seb.Fluid.Simulation
 		public float viscosityStrength = 0;
 		[Range(0, 1)] public float collisionDamping = 0.95f;
 
-		[Header("Foam Settings")] public bool foamActive;
-		public int maxFoamParticleCount = 1000;
-		public float trappedAirSpawnRate = 70;
-		public float spawnRateFadeInTime = 0.5f;
-		public float spawnRateFadeStartTime = 0;
-		public Vector2 trappedAirVelocityMinMax = new(5, 25);
-		public Vector2 foamKineticEnergyMinMax = new(15, 80);
-		public float bubbleBuoyancy = 1.5f;
-		public int sprayClassifyMaxNeighbours = 5;
-		public int bubbleClassifyMinNeighbours = 15;
-		public float bubbleScale = 0.5f;
-		public float bubbleChangeScaleSpeed = 7;
-
 		[Header("Volumetric Render Settings")] public bool renderToTex3D;
 		public int densityTextureRes;
 
@@ -47,10 +34,6 @@ namespace Seb.Fluid.Simulation
 		[HideInInspector] public RenderTexture DensityMap;
 		public Vector3 Scale => transform.localScale;
 
-		// Buffers
-		// public ComputeBuffer foamBuffer { get; private set; }
-		// public ComputeBuffer foamSortTargetBuffer { get; private set; }
-		// public ComputeBuffer foamCountBuffer { get; private set; }
 		public ComputeBuffer positionBuffer { get; private set; }
 		public ComputeBuffer velocityBuffer { get; private set; }
 		public ComputeBuffer densityBuffer { get; private set; }
@@ -214,7 +197,6 @@ namespace Seb.Fluid.Simulation
 			});
 
 			compute.SetInt("numParticles", positionBuffer.count);
-			compute.SetInt("MaxWhiteParticleCount", maxFoamParticleCount);
 
 			UpdateSmoothingConstants();
 
@@ -335,16 +317,6 @@ namespace Seb.Fluid.Simulation
 
 			compute.SetMatrix("localToWorld", transform.localToWorldMatrix);
 			compute.SetMatrix("worldToLocal", transform.worldToLocalMatrix);
-
-			// Foam settings
-			float fadeInT = (spawnRateFadeInTime <= 0) ? 1 : Mathf.Clamp01((simTimer - spawnRateFadeStartTime) / spawnRateFadeInTime);
-			compute.SetVector("trappedAirParams", new Vector3(trappedAirSpawnRate * fadeInT * fadeInT, trappedAirVelocityMinMax.x, trappedAirVelocityMinMax.y));
-			compute.SetVector("kineticEnergyParams", foamKineticEnergyMinMax);
-			compute.SetFloat("bubbleBuoyancy", bubbleBuoyancy);
-			compute.SetInt("sprayClassifyMaxNeighbours", sprayClassifyMaxNeighbours);
-			compute.SetInt("bubbleClassifyMinNeighbours", bubbleClassifyMinNeighbours);
-			compute.SetFloat("bubbleScaleChangeSpeed", bubbleChangeScaleSpeed);
-			compute.SetFloat("bubbleScale", bubbleScale);
 		}
 
 		void SetInitialBufferData(Spawner3D.SpawnData spawnData)
