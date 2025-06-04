@@ -23,7 +23,6 @@ namespace Seb.Fluid.Rendering
 		[Header("Debug Settings")] public DisplayMode displayMode;
 		public float depthDisplayScale;
 		[Header("References")] public Shader renderA;
-		public Shader depthDownsampleCopyShader;
 		public Shader depthShader;
 		public Shader smoothThickPrepareShader;
 		public FluidSim sim;
@@ -33,7 +32,6 @@ namespace Seb.Fluid.Rendering
 		Material matDepth;
 		Material matComposite;
 		Material smoothPrepareMat;
-		Material depthDownsampleCopyMat;
 		ComputeBuffer argsBuffer;
 
 		// Render textures
@@ -88,7 +86,6 @@ namespace Seb.Fluid.Rendering
 
 			void InitMaterials()
 			{
-				if (!depthDownsampleCopyMat) depthDownsampleCopyMat = new Material(depthDownsampleCopyShader);
 				if (!matDepth) matDepth = new Material(depthShader);
 				if (!smoothPrepareMat) smoothPrepareMat = new Material(smoothThickPrepareShader);
 				if (!matComposite) matComposite = new Material(renderA);
