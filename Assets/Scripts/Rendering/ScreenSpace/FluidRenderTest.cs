@@ -190,8 +190,6 @@ namespace Seb.Fluid.Rendering
 			matComposite.SetVector("tileColVariation", environmentSettings.tileColVariation);
 			matComposite.SetFloat("tileScale", environmentSettings.tileScale);
 			matComposite.SetFloat("tileDarkOffset", environmentSettings.tileDarkOffset);
-			matComposite.SetFloat("sunIntensity", environmentSettings.sunIntensity);
-			matComposite.SetFloat("sunInvSize", environmentSettings.sunInvSize);
 		}
 
 		void HandleDebugDisplayInput()
@@ -217,8 +215,6 @@ namespace Seb.Fluid.Rendering
 			public Vector3 tileColVariation;
 			public float tileScale;
 			public float tileDarkOffset;
-			public float sunIntensity;
-			public float sunInvSize;
 		}
 
 		public enum DisplayMode
