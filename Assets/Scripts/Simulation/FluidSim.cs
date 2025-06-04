@@ -48,9 +48,9 @@ namespace Seb.Fluid.Simulation
 		public Vector3 Scale => transform.localScale;
 
 		// Buffers
-		public ComputeBuffer foamBuffer { get; private set; }
-		public ComputeBuffer foamSortTargetBuffer { get; private set; }
-		public ComputeBuffer foamCountBuffer { get; private set; }
+		// public ComputeBuffer foamBuffer { get; private set; }
+		// public ComputeBuffer foamSortTargetBuffer { get; private set; }
+		// public ComputeBuffer foamCountBuffer { get; private set; }
 		public ComputeBuffer positionBuffer { get; private set; }
 		public ComputeBuffer velocityBuffer { get; private set; }
 		public ComputeBuffer densityBuffer { get; private set; }
@@ -71,9 +71,6 @@ namespace Seb.Fluid.Simulation
 		const int viscosityKernel = 6;
 		const int updatePositionsKernel = 7;
 		const int renderKernel = 8;
-		const int foamUpdateKernel = 9;
-		const int foamReorderCopyBackKernel = 10;
-
 		SpatialHash spatialHash;
 
 		// State
@@ -105,9 +102,6 @@ namespace Seb.Fluid.Simulation
 			predictedPositionsBuffer = CreateStructuredBuffer<float3>(numParticles);
 			velocityBuffer = CreateStructuredBuffer<float3>(numParticles);
 			densityBuffer = CreateStructuredBuffer<float2>(numParticles);
-			foamBuffer = CreateStructuredBuffer<FoamParticle>(maxFoamParticleCount);
-			foamSortTargetBuffer = CreateStructuredBuffer<FoamParticle>(maxFoamParticleCount);
-			foamCountBuffer = CreateStructuredBuffer<uint>(4096);
 			debugBuffer = CreateStructuredBuffer<float3>(numParticles);
 
 			sortTarget_positionBuffer = CreateStructuredBuffer<float3>(numParticles);
@@ -126,9 +120,6 @@ namespace Seb.Fluid.Simulation
 				{ sortTarget_positionBuffer, "SortTarget_Positions" },
 				{ sortTarget_predictedPositionsBuffer, "SortTarget_PredictedPositions" },
 				{ sortTarget_velocityBuffer, "SortTarget_Velocities" },
-				{ foamCountBuffer, "WhiteParticleCounters" },
-				{ foamBuffer, "WhiteParticles" },
-				{ foamSortTargetBuffer, "WhiteParticlesCompacted" },
 				{ debugBuffer, "Debug" }
 			};
 
@@ -193,8 +184,6 @@ namespace Seb.Fluid.Simulation
 				velocityBuffer,
 				spatialHash.SpatialKeys,
 				spatialHash.SpatialOffsets,
-				foamBuffer,
-				foamCountBuffer,
 				debugBuffer
 			});
 
@@ -222,29 +211,6 @@ namespace Seb.Fluid.Simulation
 				densityBuffer,
 				spatialHash.SpatialKeys,
 				spatialHash.SpatialOffsets,
-			});
-
-			// Foam update kernel
-			SetBuffers(compute, foamUpdateKernel, bufferNameLookup, new ComputeBuffer[]
-			{
-				foamBuffer,
-				foamCountBuffer,
-				predictedPositionsBuffer,
-				densityBuffer,
-				velocityBuffer,
-				spatialHash.SpatialKeys,
-				spatialHash.SpatialOffsets,
-				foamSortTargetBuffer,
-				//debugBuffer
-			});
-
-
-			// Foam reorder copyback kernel
-			SetBuffers(compute, foamReorderCopyBackKernel, bufferNameLookup, new ComputeBuffer[]
-			{
-				foamBuffer,
-				foamSortTargetBuffer,
-				foamCountBuffer,
 			});
 
 			compute.SetInt("numParticles", positionBuffer.count);
@@ -291,13 +257,6 @@ namespace Seb.Fluid.Simulation
 			{
 				simTimer += subStepDeltaTime;
 				RunSimulationStep();
-			}
-
-			// Foam and spray particles
-			if (foamActive)
-			{
-				Dispatch(compute, maxFoamParticleCount, kernelIndex: foamUpdateKernel);
-				Dispatch(compute, maxFoamParticleCount, kernelIndex: foamReorderCopyBackKernel);
 			}
 
 			// 3D density map
@@ -393,11 +352,7 @@ namespace Seb.Fluid.Simulation
 			positionBuffer.SetData(spawnData.points);
 			predictedPositionsBuffer.SetData(spawnData.points);
 			velocityBuffer.SetData(spawnData.velocities);
-
-			foamBuffer.SetData(new FoamParticle[foamBuffer.count]);
-
 			debugBuffer.SetData(new float3[debugBuffer.count]);
-			foamCountBuffer.SetData(new uint[foamCountBuffer.count]);
 			simTimer = 0;
 		}
 
