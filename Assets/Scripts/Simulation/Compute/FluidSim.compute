@@ -9,8 +9,169 @@
 #pragma kernel UpdateDensityTexture
 
 // Includes
-#include "./FluidMaths3D.hlsl"
-#include "./SpatialHash3D.hlsl"
+// #include "./FluidMaths3D.hlsl"
+static const float PI = 3.1415926;
+
+const float K_SpikyPow2;
+const float K_SpikyPow3;
+const float K_SpikyPow2Grad;
+const float K_SpikyPow3Grad;
+
+float LinearKernel(float dst, float radius)
+{
+	if (dst < radius)
+    {
+        return 1 - dst / radius;
+    }
+    return 0;
+}
+
+float SmoothingKernelPoly6(float dst, float radius)
+{
+	if (dst < radius)
+	{
+		float scale = 315 / (64 * PI * pow(abs(radius), 9));
+		float v = radius * radius - dst * dst;
+		return v * v * v * scale;
+	}
+	return 0;
+}
+
+float SpikyKernelPow3(float dst, float radius)
+{
+	if (dst < radius)
+	{
+		float v = radius - dst;
+		return v * v * v * K_SpikyPow3;
+	}
+	return 0;
+}
+
+//Integrate[(h-r)^2 r^2 Sin[θ], {r, 0, h}, {θ, 0, π}, {φ, 0, 2*π}]
+float SpikyKernelPow2(float dst, float radius)
+{
+	if (dst < radius)
+	{
+		float v = radius - dst;
+		return v * v * K_SpikyPow2;
+	}
+	return 0;
+}
+
+float DerivativeSpikyPow3(float dst, float radius)
+{
+	if (dst <= radius)
+	{
+		float v = radius - dst;
+		return -v * v * K_SpikyPow3Grad;
+	}
+	return 0;
+}
+
+float DerivativeSpikyPow2(float dst, float radius)
+{
+	if (dst <= radius)
+	{
+		float v = radius - dst;
+		return -v * K_SpikyPow2Grad;
+	}
+	return 0;
+}
+
+float DensityKernel(float dst, float radius)
+{
+	//return SmoothingKernelPoly6(dst, radius);
+	return SpikyKernelPow2(dst, radius);
+}
+
+float NearDensityKernel(float dst, float radius)
+{
+	return SpikyKernelPow3(dst, radius);
+}
+
+float DensityDerivative(float dst, float radius)
+{
+	return DerivativeSpikyPow2(dst, radius);
+}
+
+float NearDensityDerivative(float dst, float radius)
+{
+	return DerivativeSpikyPow3(dst, radius);
+}
+
+// #include "./SpatialHash3D.hlsl"
+static const int3 offsets3D[27] =
+{
+	int3(-1, -1, -1),
+	int3(0, -1, -1),
+	int3(1, -1, -1),
+
+	int3(-1, 0, -1),
+	int3(0, 0, -1),
+	int3(1, 0, -1),
+
+	int3(-1, 1, -1),
+	int3(0, 1, -1),
+	int3(1, 1, -1),
+
+	int3(-1, -1, 0),
+	int3(0, -1, 0),
+	int3(1, -1, 0),
+
+	int3(-1, 0, 0),
+	int3(0, 0, 0),
+	int3(1, 0, 0),
+
+	int3(-1, 1, 0),
+	int3(0, 1, 0),
+	int3(1, 1, 0),
+
+	int3(-1, -1, 1),
+	int3(0, -1, 1),
+	int3(1, -1, 1),
+
+	int3(-1, 0, 1),
+	int3(0, 0, 1),
+	int3(1, 0, 1),
+
+	int3(-1, 1, 1),
+	int3(0, 1, 1),
+	int3(1, 1, 1)
+};
+
+// Constants used for hashing
+static const uint hashK1 = 15823;
+static const uint hashK2 = 9737333;
+static const uint hashK3 = 440817757;
+
+// Convert floating point position into an integer cell coordinate
+int3 GetCell3D(float3 position, float radius)
+{
+	return (int3)floor(position / radius);
+}
+
+// Hash cell coordinate to a single unsigned integer
+// TODO: investigate better hashing functions
+uint HashCell3D(int3 cell)
+{
+	const uint blockSize = 50;
+	uint3 ucell = (uint3) (cell + blockSize / 2);
+
+	uint3 localCell = ucell % blockSize;
+	uint3 blockID = ucell / blockSize;
+	uint blockHash = blockID.x * hashK1 + blockID.y * hashK2 + blockID.z * hashK3;
+	return localCell.x + blockSize * (localCell.y + blockSize * localCell.z) + blockHash;
+
+}
+
+uint KeyFromHash(uint hash, uint tableSize)
+{
+	return hash % tableSize;
+}
+
+// done SpatialHash3d
+
+
 
 static const int ThreadGroupSize = 256;
 
