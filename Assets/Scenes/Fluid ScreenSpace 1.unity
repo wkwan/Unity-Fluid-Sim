@@ -261,11 +261,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e91ff7098726a7b4c8fc059bbd36863c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  useFullSizeThicknessTex: 1
   extinctionCoefficients: {x: 2.12, y: 0.43, z: 0.3}
   extinctionMultiplier: 2.24
   depthParticleSize: 0.1
-  thicknessParticleScale: 0.07
   refractionMultiplier: 9.15
   testParams: {x: 5.81, y: 2.29, z: 3.42}
   smoothType: 2
@@ -291,14 +289,11 @@ MonoBehaviour:
     tileDarkOffset: 0.2
     sunIntensity: 16
     sunInvSize: 1500
-  displayMode: 0
-  depthDisplayScale: 20
-  thicknessDisplayScale: 10
+  displayMode: 2
+  depthDisplayScale: 80
   renderA: {fileID: 4800000, guid: 9a79edc6472dabc4fa9c37965275e9d3, type: 3}
   depthDownsampleCopyShader: {fileID: 4800000, guid: ce2800a7301a760409fa7f252748145b, type: 3}
   depthShader: {fileID: 4800000, guid: 3887ea62b8b3f554ba6fe11d830d554a, type: 3}
-  normalShader: {fileID: 4800000, guid: 51c49fd9371f75941be25d4e04cd4c3b, type: 3}
-  thicknessShader: {fileID: 4800000, guid: 650e4a4f0f5620842a1032b02d4f95d6, type: 3}
   smoothThickPrepareShader: {fileID: 4800000, guid: 9a832c9d1359bcb4997205fac07216cc, type: 3}
   sim: {fileID: 647353484}
 --- !u!4 &663331567
